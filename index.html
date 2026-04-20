@@ -16,9 +16,9 @@
     const { useEffect, useMemo, useState } = React;
 
     // =========================================
-    // UPDATE THESE 3 VALUES
+    // UPDATE THESE VALUES
     // =========================================
-    const GOOGLE_SHEETS_API = 'https://script.google.com/macros/s/AKfycbwS39hXbOjOHTeUq5cFoE_e2ndn3rCFfTzWVeY19z4WJJ53cK9_c1jb2KaCAp_qiiuaGw/exec';
+    const GOOGLE_SHEETS_API = 'https://script.google.com/macros/s/AKfycbxY_50xg2l8P7nqT0fzRefDlDF6HUVGVnwTP10-ihYyoe2aMRDTg64c0wBSZ7oUVPeyOA/exec';
     const PORTAL_TOKEN = 'demo_portal_token_123';
     const CLIENT_INTAKE_FORM = 'https://form.jotform.com/261095141982055';
 
@@ -38,6 +38,8 @@
         maximumFractionDigits: 0
       }).format(number);
     };
+
+    const safeString = (value) => String(value || '').trim();
 
     const StatusBadge = ({ status }) => {
       const safeStatus = status || 'Unknown';
@@ -67,20 +69,26 @@
       </div>
     );
 
-    const Dashboard = ({ companyName, clients, leads, intakeFormUrl, loading, error }) => {
-      const [statusFilter, setStatusFilter] = useState('All');
+    const NavButton = ({ active, label, onClick }) => (
+      <button
+        onClick={onClick}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+          active
+            ? 'bg-blue-600 text-white'
+            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        {label}
+      </button>
+    );
 
-      const filteredClients = useMemo(() => {
-        if (statusFilter === 'All') return clients;
-        return clients.filter(client => (client.status || '') === statusFilter);
-      }, [clients, statusFilter]);
-
+    const DashboardTab = ({ clients, leads, intakeFormUrl, loading }) => {
       const totalClients = clients.length;
       const totalLeads = leads.length;
       const docsSentCount = clients.filter(c => c.status === 'Docs Sent').length;
+      const docsSignedCount = clients.filter(c => c.status === 'Docs Signed').length;
       const paymentPendingCount = clients.filter(c => c.status === 'Payment Pending').length;
       const paidCount = clients.filter(c => c.status === 'Paid').length;
-      const closedLostCount = clients.filter(c => c.status === 'Closed Lost').length;
 
       const pipelineValue = clients.reduce((sum, client) => {
         const amount = Number(String(client.estimatedValue || '').replace(/[^0-9.-]/g, ''));
@@ -88,164 +96,366 @@
       }, 0);
 
       return (
-        <div className="min-h-screen">
-          <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div>
-                  <p className="text-blue-100 text-sm font-semibold uppercase tracking-[0.2em] mb-2">
-                    Demo Portal
-                  </p>
-                  <h1 className="text-4xl font-bold">{companyName || 'SalesFlow Portal'}</h1>
-                  <p className="text-blue-100 mt-3 max-w-2xl">
-                    A live sales pipeline portal for tracking leads, clients, statuses, and team activity in one place.
-                  </p>
-                </div>
+        <div>
+          <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+            <StatCard label="Total Clients" value={loading ? '...' : totalClients} />
+            <StatCard label="Total Leads" value={loading ? '...' : totalLeads} />
+            <StatCard label="Docs Sent" value={loading ? '...' : docsSentCount} />
+            <StatCard label="Docs Signed" value={loading ? '...' : docsSignedCount} />
+            <StatCard label="Payment Pending" value={loading ? '...' : paymentPendingCount} />
+            <StatCard label="Pipeline Value" value={loading ? '...' : formatCurrency(pipelineValue)} />
+          </section>
 
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href={intakeFormUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-5 py-3 rounded-xl bg-white text-blue-700 font-bold hover:bg-blue-50 transition"
-                  >
-                    Open Intake Form
-                  </a>
-                </div>
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Sales Team Overview</h2>
+                <p className="text-slate-500 mt-1">
+                  View leads, clients, pipeline stages, and team resources in one place.
+                </p>
+              </div>
+
+              <a
+                href={intakeFormUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
+              >
+                Open Intake Form
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
+                <h3 className="font-bold text-slate-900 mb-2">Why this is valuable</h3>
+                <ul className="text-sm text-slate-600 space-y-2">
+                  <li>• Centralizes client and lead tracking</li>
+                  <li>• Gives reps visibility into current pipeline status</li>
+                  <li>• Helps managers monitor stalled deals and follow-up</li>
+                  <li>• Keeps key sales resources in one portal</li>
+                </ul>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
+                <h3 className="font-bold text-slate-900 mb-2">Recommended next upgrades</h3>
+                <ul className="text-sm text-slate-600 space-y-2">
+                  <li>• Client update form inside portal</li>
+                  <li>• Activity log and notes history</li>
+                  <li>• Tasks / follow-up tracking</li>
+                  <li>• Rep performance reporting</li>
+                </ul>
               </div>
             </div>
-          </header>
-
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {error ? (
-              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
-                <strong>Error:</strong> {error}
-              </div>
-            ) : null}
-
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-              <StatCard label="Total Clients" value={loading ? '...' : totalClients} />
-              <StatCard label="Total Leads" value={loading ? '...' : totalLeads} />
-              <StatCard label="Docs Sent" value={loading ? '...' : docsSentCount} />
-              <StatCard label="Payment Pending" value={loading ? '...' : paymentPendingCount} />
-              <StatCard label="Paid" value={loading ? '...' : paidCount} />
-              <StatCard label="Pipeline Value" value={loading ? '...' : formatCurrency(pipelineValue)} />
-            </section>
-
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
-              <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Clients</h2>
-                    <p className="text-slate-500 text-sm mt-1">Track every client through the sales pipeline.</p>
-                  </div>
-
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="New Lead">New Lead</option>
-                    <option value="Qualified">Qualified</option>
-                    <option value="Docs Sent">Docs Sent</option>
-                    <option value="Docs Signed">Docs Signed</option>
-                    <option value="Payment Pending">Payment Pending</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Closed Lost">Closed Lost</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-6 overflow-x-auto">
-                {loading ? (
-                  <div className="py-12 text-center text-slate-500">Loading clients...</div>
-                ) : filteredClients.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500">No client records found.</div>
-                ) : (
-                  <table className="w-full min-w-[1000px]">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Client ID</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Product</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Est. Value</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Submitted</th>
-                        <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredClients.map((client, index) => (
-                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{client.clientId || '—'}</td>
-                          <td className="py-4 pr-4"><StatusBadge status={client.status} /></td>
-                          <td className="py-4 pr-4 text-sm">{client.firstName || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{client.lastName || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{client.email || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{client.assignedRep || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{client.product || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{formatCurrency(client.estimatedValue)}</td>
-                          <td className="py-4 pr-4 text-sm">{formatDate(client.dateSubmitted)}</td>
-                          <td className="py-4 text-sm max-w-[260px] truncate">{client.notes || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
-
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
-                <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
-                <p className="text-slate-500 text-sm mt-1">Early-stage submissions and pipeline opportunities.</p>
-              </div>
-
-              <div className="p-6 overflow-x-auto">
-                {loading ? (
-                  <div className="py-12 text-center text-slate-500">Loading leads...</div>
-                ) : leads.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500">No lead records found.</div>
-                ) : (
-                  <table className="w-full min-w-[850px]">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Lead ID</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Interest</th>
-                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
-                        <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Submitted</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leads.map((lead, index) => (
-                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{lead.leadId || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{lead.firstName || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{lead.lastName || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{lead.email || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{lead.assignedRep || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">{lead.interest || '—'}</td>
-                          <td className="py-4 pr-4 text-sm">
-                            <StatusBadge status={lead.status || 'New Lead'} />
-                          </td>
-                          <td className="py-4 text-sm">{formatDate(lead.dateSubmitted)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
-          </main>
+          </section>
         </div>
+      );
+    };
+
+    const ClientsTab = ({ clients, loading }) => {
+      const [searchTerm, setSearchTerm] = useState('');
+      const [statusFilter, setStatusFilter] = useState('All');
+      const [repFilter, setRepFilter] = useState('All');
+
+      const repOptions = useMemo(() => {
+        const reps = [...new Set(
+          clients
+            .map(client => safeString(client.assignedRep))
+            .filter(Boolean)
+        )].sort();
+        return ['All', ...reps];
+      }, [clients]);
+
+      const filteredClients = useMemo(() => {
+        return clients.filter((client) => {
+          const firstName = safeString(client.firstName).toLowerCase();
+          const lastName = safeString(client.lastName).toLowerCase();
+          const email = safeString(client.email).toLowerCase();
+          const company = safeString(client.company).toLowerCase();
+          const clientId = safeString(client.clientId).toLowerCase();
+          const assignedRep = safeString(client.assignedRep);
+          const status = safeString(client.status);
+
+          const search = searchTerm.trim().toLowerCase();
+          const matchesSearch =
+            !search ||
+            firstName.includes(search) ||
+            lastName.includes(search) ||
+            email.includes(search) ||
+            company.includes(search) ||
+            clientId.includes(search);
+
+          const matchesStatus = statusFilter === 'All' || status === statusFilter;
+          const matchesRep = repFilter === 'All' || assignedRep === repFilter;
+
+          return matchesSearch && matchesStatus && matchesRep;
+        });
+      }, [clients, searchTerm, statusFilter, repFilter]);
+
+      return (
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Clients</h2>
+                <p className="text-slate-500 text-sm mt-1">
+                  Search by client name, email, company, or client ID. Filter by status and rep.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search client name, email, company, or ID..."
+                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                />
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="New Lead">New Lead</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Docs Sent">Docs Sent</option>
+                  <option value="Docs Signed">Docs Signed</option>
+                  <option value="Payment Pending">Payment Pending</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Closed Lost">Closed Lost</option>
+                </select>
+
+                <select
+                  value={repFilter}
+                  onChange={(e) => setRepFilter(e.target.value)}
+                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                >
+                  {repOptions.map((rep) => (
+                    <option key={rep} value={rep}>{rep}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 overflow-x-auto">
+            {loading ? (
+              <div className="py-12 text-center text-slate-500">Loading clients...</div>
+            ) : filteredClients.length === 0 ? (
+              <div className="py-12 text-center text-slate-500">No client records found.</div>
+            ) : (
+              <table className="w-full min-w-[1150px]">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Client ID</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Company</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Product</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Est. Value</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Submitted</th>
+                    <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredClients.map((client, index) => (
+                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{client.clientId || '—'}</td>
+                      <td className="py-4 pr-4"><StatusBadge status={client.status} /></td>
+                      <td className="py-4 pr-4 text-sm">{client.firstName || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{client.lastName || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{client.email || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{client.company || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{client.assignedRep || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{client.product || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{formatCurrency(client.estimatedValue)}</td>
+                      <td className="py-4 pr-4 text-sm">{formatDate(client.dateSubmitted)}</td>
+                      <td className="py-4 text-sm max-w-[260px] truncate">{client.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      );
+    };
+
+    const LeadsTab = ({ leads, loading }) => {
+      const [searchTerm, setSearchTerm] = useState('');
+      const [repFilter, setRepFilter] = useState('All');
+
+      const repOptions = useMemo(() => {
+        const reps = [...new Set(
+          leads
+            .map(lead => safeString(lead.assignedRep))
+            .filter(Boolean)
+        )].sort();
+        return ['All', ...reps];
+      }, [leads]);
+
+      const filteredLeads = useMemo(() => {
+        return leads.filter((lead) => {
+          const firstName = safeString(lead.firstName).toLowerCase();
+          const lastName = safeString(lead.lastName).toLowerCase();
+          const email = safeString(lead.email).toLowerCase();
+          const company = safeString(lead.company).toLowerCase();
+          const leadId = safeString(lead.leadId).toLowerCase();
+          const assignedRep = safeString(lead.assignedRep);
+
+          const search = searchTerm.trim().toLowerCase();
+          const matchesSearch =
+            !search ||
+            firstName.includes(search) ||
+            lastName.includes(search) ||
+            email.includes(search) ||
+            company.includes(search) ||
+            leadId.includes(search);
+
+          const matchesRep = repFilter === 'All' || assignedRep === repFilter;
+
+          return matchesSearch && matchesRep;
+        });
+      }, [leads, searchTerm, repFilter]);
+
+      return (
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
+                <p className="text-slate-500 text-sm mt-1">
+                  Search and filter early-stage opportunities.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search lead name, email, company, or ID..."
+                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                />
+
+                <select
+                  value={repFilter}
+                  onChange={(e) => setRepFilter(e.target.value)}
+                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                >
+                  {repOptions.map((rep) => (
+                    <option key={rep} value={rep}>{rep}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 overflow-x-auto">
+            {loading ? (
+              <div className="py-12 text-center text-slate-500">Loading leads...</div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="py-12 text-center text-slate-500">No lead records found.</div>
+            ) : (
+              <table className="w-full min-w-[1000px]">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Lead ID</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Company</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Interest</th>
+                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
+                    <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead, index) => (
+                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{lead.leadId || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.firstName || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.lastName || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.email || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.company || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.assignedRep || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">{lead.interest || '—'}</td>
+                      <td className="py-4 pr-4 text-sm">
+                        <StatusBadge status={lead.status || 'New Lead'} />
+                      </td>
+                      <td className="py-4 text-sm">{formatDate(lead.dateSubmitted)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      );
+    };
+
+    const ResourcesTab = ({ resources, loading }) => {
+      const activeResources = useMemo(() => {
+        return resources.filter((resource) => {
+          const activeValue = String(resource.active || '').toLowerCase();
+          return activeValue === 'true' || activeValue === 'yes' || activeValue === '1' || activeValue === '';
+        });
+      }, [resources]);
+
+      return (
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-2xl font-bold text-slate-900">Resources</h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Centralized sales materials, training links, and support documents.
+            </p>
+          </div>
+
+          <div className="p-6">
+            {loading ? (
+              <div className="py-12 text-center text-slate-500">Loading resources...</div>
+            ) : activeResources.length === 0 ? (
+              <div className="py-12 text-center text-slate-500">
+                No active resources found. Add rows to your Resources tab in Google Sheets.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {activeResources.map((resource, index) => (
+                  <div key={index} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                          {resource.category || 'General'}
+                        </p>
+                        <h3 className="text-lg font-bold text-slate-900 mt-1">
+                          {resource.title || 'Untitled Resource'}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-slate-600 mt-3 min-h-[60px]">
+                      {resource.description || 'No description provided.'}
+                    </p>
+
+                    <a
+                      href={resource.link || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+                    >
+                      Open Resource
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       );
     };
 
@@ -255,6 +465,8 @@
       const [companyName, setCompanyName] = useState('SalesFlow Portal');
       const [clients, setClients] = useState([]);
       const [leads, setLeads] = useState([]);
+      const [resources, setResources] = useState([]);
+      const [activeTab, setActiveTab] = useState('dashboard');
 
       useEffect(() => {
         fetchData();
@@ -274,8 +486,9 @@
           }
 
           setCompanyName(result.companyName || 'SalesFlow Portal');
-          setClients(result.clients || []);
-          setLeads(result.leads || []);
+          setClients(Array.isArray(result.clients) ? result.clients : []);
+          setLeads(Array.isArray(result.leads) ? result.leads : []);
+          setResources(Array.isArray(result.resources) ? result.resources : []);
         } catch (err) {
           setError(err.message || 'Something went wrong.');
         } finally {
@@ -284,14 +497,95 @@
       };
 
       return (
-        <Dashboard
-          companyName={companyName}
-          clients={clients}
-          leads={leads}
-          intakeFormUrl={CLIENT_INTAKE_FORM}
-          loading={loading}
-          error={error}
-        />
+        <div className="min-h-screen">
+          <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div>
+                  <p className="text-blue-100 text-sm font-semibold uppercase tracking-[0.2em] mb-2">
+                    Sales Portal Demo
+                  </p>
+                  <h1 className="text-4xl font-bold">{companyName}</h1>
+                  <p className="text-blue-100 mt-3 max-w-2xl">
+                    A live operating system for sales teams to manage leads, track clients, organize resources, and improve pipeline visibility.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={CLIENT_INTAKE_FORM}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 rounded-xl bg-white text-blue-700 font-bold hover:bg-blue-50 transition"
+                  >
+                    Open Intake Form
+                  </a>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {error ? (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
+                <strong>Error:</strong> {error}
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3 mb-8">
+              <NavButton
+                label="Dashboard"
+                active={activeTab === 'dashboard'}
+                onClick={() => setActiveTab('dashboard')}
+              />
+              <NavButton
+                label="Clients"
+                active={activeTab === 'clients'}
+                onClick={() => setActiveTab('clients')}
+              />
+              <NavButton
+                label="Leads"
+                active={activeTab === 'leads'}
+                onClick={() => setActiveTab('leads')}
+              />
+              <NavButton
+                label="Resources"
+                active={activeTab === 'resources'}
+                onClick={() => setActiveTab('resources')}
+              />
+            </div>
+
+            {activeTab === 'dashboard' && (
+              <DashboardTab
+                clients={clients}
+                leads={leads}
+                intakeFormUrl={CLIENT_INTAKE_FORM}
+                loading={loading}
+              />
+            )}
+
+            {activeTab === 'clients' && (
+              <ClientsTab
+                clients={clients}
+                loading={loading}
+              />
+            )}
+
+            {activeTab === 'leads' && (
+              <LeadsTab
+                leads={leads}
+                loading={loading}
+              />
+            )}
+
+            {activeTab === 'resources' && (
+              <ResourcesTab
+                resources={resources}
+                loading={loading}
+              />
+            )}
+          </main>
+        </div>
       );
     };
 
