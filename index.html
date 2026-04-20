@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SalesFlow Portal Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useState } = React;
+
+    // =========================================
+    // UPDATE THESE 3 VALUES
+    // =========================================
+    const GOOGLE_SHEETS_API = 'https://script.google.com/macros/s/AKfycbwS39hXbOjOHTeUq5cFoE_e2ndn3rCFfTzWVeY19z4WJJ53cK9_c1jb2KaCAp_qiiuaGw/exec';
+    const PORTAL_TOKEN = 'demo_portal_token_123';
+    const CLIENT_INTAKE_FORM = 'https://form.jotform.com/261095141982055';
+
+    const formatDate = (value) => {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleDateString();
+    };
+
+    const formatCurrency = (value) => {
+      const number = Number(String(value || '').replace(/[^0-9.-]/g, ''));
+      if (!Number.isFinite(number)) return '$0';
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+      }).format(number);
+    };
+
+    const StatusBadge = ({ status }) => {
+      const safeStatus = status || 'Unknown';
+
+      const styles = {
+        'New Lead': 'bg-sky-100 text-sky-800',
+        'Qualified': 'bg-indigo-100 text-indigo-800',
+        'Docs Sent': 'bg-amber-100 text-amber-800',
+        'Docs Signed': 'bg-violet-100 text-violet-800',
+        'Payment Pending': 'bg-orange-100 text-orange-800',
+        'Paid': 'bg-green-100 text-green-800',
+        'Closed Lost': 'bg-red-100 text-red-800'
+      };
+
+      return (
+        <span className={`px-3 py-1 rounded-full text-xs font-bold ${styles[safeStatus] || 'bg-slate-100 text-slate-700'}`}>
+          {safeStatus}
+        </span>
+      );
+    };
+
+    const StatCard = ({ label, value, subtext = '' }) => (
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="text-3xl font-bold text-slate-900 mt-2">{value}</p>
+        {subtext ? <p className="text-sm text-slate-500 mt-2">{subtext}</p> : null}
+      </div>
+    );
+
+    const Dashboard = ({ companyName, clients, leads, intakeFormUrl, loading, error }) => {
+      const [statusFilter, setStatusFilter] = useState('All');
+
+      const filteredClients = useMemo(() => {
+        if (statusFilter === 'All') return clients;
+        return clients.filter(client => (client.status || '') === statusFilter);
+      }, [clients, statusFilter]);
+
+      const totalClients = clients.length;
+      const totalLeads = leads.length;
+      const docsSentCount = clients.filter(c => c.status === 'Docs Sent').length;
+      const paymentPendingCount = clients.filter(c => c.status === 'Payment Pending').length;
+      const paidCount = clients.filter(c => c.status === 'Paid').length;
+      const closedLostCount = clients.filter(c => c.status === 'Closed Lost').length;
+
+      const pipelineValue = clients.reduce((sum, client) => {
+        const amount = Number(String(client.estimatedValue || '').replace(/[^0-9.-]/g, ''));
+        return sum + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
+
+      return (
+        <div className="min-h-screen">
+          <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div>
+                  <p className="text-blue-100 text-sm font-semibold uppercase tracking-[0.2em] mb-2">
+                    Demo Portal
+                  </p>
+                  <h1 className="text-4xl font-bold">{companyName || 'SalesFlow Portal'}</h1>
+                  <p className="text-blue-100 mt-3 max-w-2xl">
+                    A live sales pipeline portal for tracking leads, clients, statuses, and team activity in one place.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={intakeFormUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 rounded-xl bg-white text-blue-700 font-bold hover:bg-blue-50 transition"
+                  >
+                    Open Intake Form
+                  </a>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {error ? (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
+                <strong>Error:</strong> {error}
+              </div>
+            ) : null}
+
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+              <StatCard label="Total Clients" value={loading ? '...' : totalClients} />
+              <StatCard label="Total Leads" value={loading ? '...' : totalLeads} />
+              <StatCard label="Docs Sent" value={loading ? '...' : docsSentCount} />
+              <StatCard label="Payment Pending" value={loading ? '...' : paymentPendingCount} />
+              <StatCard label="Paid" value={loading ? '...' : paidCount} />
+              <StatCard label="Pipeline Value" value={loading ? '...' : formatCurrency(pipelineValue)} />
+            </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
+              <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">Clients</h2>
+                    <p className="text-slate-500 text-sm mt-1">Track every client through the sales pipeline.</p>
+                  </div>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="New Lead">New Lead</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Docs Sent">Docs Sent</option>
+                    <option value="Docs Signed">Docs Signed</option>
+                    <option value="Payment Pending">Payment Pending</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Closed Lost">Closed Lost</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-6 overflow-x-auto">
+                {loading ? (
+                  <div className="py-12 text-center text-slate-500">Loading clients...</div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500">No client records found.</div>
+                ) : (
+                  <table className="w-full min-w-[1000px]">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Client ID</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Product</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Est. Value</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Submitted</th>
+                        <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClients.map((client, index) => (
+                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{client.clientId || '—'}</td>
+                          <td className="py-4 pr-4"><StatusBadge status={client.status} /></td>
+                          <td className="py-4 pr-4 text-sm">{client.firstName || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{client.lastName || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{client.email || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{client.assignedRep || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{client.product || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{formatCurrency(client.estimatedValue)}</td>
+                          <td className="py-4 pr-4 text-sm">{formatDate(client.dateSubmitted)}</td>
+                          <td className="py-4 text-sm max-w-[260px] truncate">{client.notes || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+                <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
+                <p className="text-slate-500 text-sm mt-1">Early-stage submissions and pipeline opportunities.</p>
+              </div>
+
+              <div className="p-6 overflow-x-auto">
+                {loading ? (
+                  <div className="py-12 text-center text-slate-500">Loading leads...</div>
+                ) : leads.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500">No lead records found.</div>
+                ) : (
+                  <table className="w-full min-w-[850px]">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Lead ID</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Interest</th>
+                        <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
+                        <th className="text-left py-3 text-xs font-bold uppercase text-slate-600">Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leads.map((lead, index) => (
+                        <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{lead.leadId || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{lead.firstName || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{lead.lastName || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{lead.email || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{lead.assignedRep || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">{lead.interest || '—'}</td>
+                          <td className="py-4 pr-4 text-sm">
+                            <StatusBadge status={lead.status || 'New Lead'} />
+                          </td>
+                          <td className="py-4 text-sm">{formatDate(lead.dateSubmitted)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          </main>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [companyName, setCompanyName] = useState('SalesFlow Portal');
+      const [clients, setClients] = useState([]);
+      const [leads, setLeads] = useState([]);
+
+      useEffect(() => {
+        fetchData();
+      }, []);
+
+      const fetchData = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+          const url = `${GOOGLE_SHEETS_API}?action=portalData&token=${PORTAL_TOKEN}`;
+          const response = await fetch(url);
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to load portal data.');
+          }
+
+          setCompanyName(result.companyName || 'SalesFlow Portal');
+          setClients(result.clients || []);
+          setLeads(result.leads || []);
+        } catch (err) {
+          setError(err.message || 'Something went wrong.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <Dashboard
+          companyName={companyName}
+          clients={clients}
+          leads={leads}
+          intakeFormUrl={CLIENT_INTAKE_FORM}
+          loading={loading}
+          error={error}
+        />
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
