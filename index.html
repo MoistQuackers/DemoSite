@@ -15,10 +15,7 @@
   <script type="text/babel">
     const { useEffect, useMemo, useState } = React;
 
-    // =========================================
-    // UPDATE THESE VALUES
-    // =========================================
-    const GOOGLE_SHEETS_API = 'https://script.google.com/macros/s/AKfycbxY_50xg2l8P7nqT0fzRefDlDF6HUVGVnwTP10-ihYyoe2aMRDTg64c0wBSZ7oUVPeyOA/exec';
+    const GOOGLE_SHEETS_API = 'https://script.google.com/macros/s/AKfycbyY4iLcPYABr-0keW-U-aty3zcH_97rTR_Yxnp-hNadV2Jw66JoBfp45o-5MuxJ3ZP6vQ/exec';
     const PORTAL_TOKEN = 'demo_portal_token_123';
     const CLIENT_INTAKE_FORM = 'https://form.jotform.com/261095141982055';
 
@@ -43,7 +40,6 @@
 
     const StatusBadge = ({ status }) => {
       const safeStatus = status || 'Unknown';
-
       const styles = {
         'New Lead': 'bg-sky-100 text-sky-800',
         'Qualified': 'bg-indigo-100 text-indigo-800',
@@ -61,11 +57,10 @@
       );
     };
 
-    const StatCard = ({ label, value, subtext = '' }) => (
+    const StatCard = ({ label, value }) => (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{label}</p>
         <p className="text-3xl font-bold text-slate-900 mt-2">{value}</p>
-        {subtext ? <p className="text-sm text-slate-500 mt-2">{subtext}</p> : null}
       </div>
     );
 
@@ -109,9 +104,9 @@
           <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Sales Team Overview</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Portal Dashboard</h2>
                 <p className="text-slate-500 mt-1">
-                  View leads, clients, pipeline stages, and team resources in one place.
+                  Live sales pipeline visibility for leads, clients, and deal progress.
                 </p>
               </div>
 
@@ -123,28 +118,6 @@
               >
                 Open Intake Form
               </a>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-                <h3 className="font-bold text-slate-900 mb-2">Why this is valuable</h3>
-                <ul className="text-sm text-slate-600 space-y-2">
-                  <li>• Centralizes client and lead tracking</li>
-                  <li>• Gives reps visibility into current pipeline status</li>
-                  <li>• Helps managers monitor stalled deals and follow-up</li>
-                  <li>• Keeps key sales resources in one portal</li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-                <h3 className="font-bold text-slate-900 mb-2">Recommended next upgrades</h3>
-                <ul className="text-sm text-slate-600 space-y-2">
-                  <li>• Client update form inside portal</li>
-                  <li>• Activity log and notes history</li>
-                  <li>• Tasks / follow-up tracking</li>
-                  <li>• Rep performance reporting</li>
-                </ul>
-              </div>
             </div>
           </section>
         </div>
@@ -158,9 +131,7 @@
 
       const repOptions = useMemo(() => {
         const reps = [...new Set(
-          clients
-            .map(client => safeString(client.assignedRep))
-            .filter(Boolean)
+          clients.map(client => safeString(client.assignedRep)).filter(Boolean)
         )].sort();
         return ['All', ...reps];
       }, [clients]);
@@ -198,7 +169,7 @@
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Clients</h2>
                 <p className="text-slate-500 text-sm mt-1">
-                  Search by client name, email, company, or client ID. Filter by status and rep.
+                  Search by name, email, company, or client ID. Filter by status and rep.
                 </p>
               </div>
 
@@ -286,89 +257,26 @@
     };
 
     const LeadsTab = ({ leads, loading }) => {
-      const [searchTerm, setSearchTerm] = useState('');
-      const [repFilter, setRepFilter] = useState('All');
-
-      const repOptions = useMemo(() => {
-        const reps = [...new Set(
-          leads
-            .map(lead => safeString(lead.assignedRep))
-            .filter(Boolean)
-        )].sort();
-        return ['All', ...reps];
-      }, [leads]);
-
-      const filteredLeads = useMemo(() => {
-        return leads.filter((lead) => {
-          const firstName = safeString(lead.firstName).toLowerCase();
-          const lastName = safeString(lead.lastName).toLowerCase();
-          const email = safeString(lead.email).toLowerCase();
-          const company = safeString(lead.company).toLowerCase();
-          const leadId = safeString(lead.leadId).toLowerCase();
-          const assignedRep = safeString(lead.assignedRep);
-
-          const search = searchTerm.trim().toLowerCase();
-          const matchesSearch =
-            !search ||
-            firstName.includes(search) ||
-            lastName.includes(search) ||
-            email.includes(search) ||
-            company.includes(search) ||
-            leadId.includes(search);
-
-          const matchesRep = repFilter === 'All' || assignedRep === repFilter;
-
-          return matchesSearch && matchesRep;
-        });
-      }, [leads, searchTerm, repFilter]);
-
       return (
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
-            <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
-                <p className="text-slate-500 text-sm mt-1">
-                  Search and filter early-stage opportunities.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search lead name, email, company, or ID..."
-                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
-                />
-
-                <select
-                  value={repFilter}
-                  onChange={(e) => setRepFilter(e.target.value)}
-                  className="px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
-                >
-                  {repOptions.map((rep) => (
-                    <option key={rep} value={rep}>{rep}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
+            <p className="text-slate-500 text-sm mt-1">Early-stage submissions and opportunities.</p>
           </div>
 
           <div className="p-6 overflow-x-auto">
             {loading ? (
               <div className="py-12 text-center text-slate-500">Loading leads...</div>
-            ) : filteredLeads.length === 0 ? (
+            ) : leads.length === 0 ? (
               <div className="py-12 text-center text-slate-500">No lead records found.</div>
             ) : (
-              <table className="w-full min-w-[1000px]">
+              <table className="w-full min-w-[950px]">
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Lead ID</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">First</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Last</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Email</th>
-                    <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Company</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Rep</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Interest</th>
                     <th className="text-left py-3 pr-4 text-xs font-bold uppercase text-slate-600">Status</th>
@@ -376,18 +284,15 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLeads.map((lead, index) => (
+                  {leads.map((lead, index) => (
                     <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-4 pr-4 text-sm font-semibold text-slate-800">{lead.leadId || '—'}</td>
                       <td className="py-4 pr-4 text-sm">{lead.firstName || '—'}</td>
                       <td className="py-4 pr-4 text-sm">{lead.lastName || '—'}</td>
                       <td className="py-4 pr-4 text-sm">{lead.email || '—'}</td>
-                      <td className="py-4 pr-4 text-sm">{lead.company || '—'}</td>
                       <td className="py-4 pr-4 text-sm">{lead.assignedRep || '—'}</td>
                       <td className="py-4 pr-4 text-sm">{lead.interest || '—'}</td>
-                      <td className="py-4 pr-4 text-sm">
-                        <StatusBadge status={lead.status || 'New Lead'} />
-                      </td>
+                      <td className="py-4 pr-4 text-sm"><StatusBadge status={lead.status || 'New Lead'} /></td>
                       <td className="py-4 text-sm">{formatDate(lead.dateSubmitted)}</td>
                     </tr>
                   ))}
@@ -411,37 +316,27 @@
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
             <h2 className="text-2xl font-bold text-slate-900">Resources</h2>
-            <p className="text-slate-500 text-sm mt-1">
-              Centralized sales materials, training links, and support documents.
-            </p>
+            <p className="text-slate-500 text-sm mt-1">Sales materials, training links, and key documents.</p>
           </div>
 
           <div className="p-6">
             {loading ? (
               <div className="py-12 text-center text-slate-500">Loading resources...</div>
             ) : activeResources.length === 0 ? (
-              <div className="py-12 text-center text-slate-500">
-                No active resources found. Add rows to your Resources tab in Google Sheets.
-              </div>
+              <div className="py-12 text-center text-slate-500">No active resources found.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {activeResources.map((resource, index) => (
                   <div key={index} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
-                          {resource.category || 'General'}
-                        </p>
-                        <h3 className="text-lg font-bold text-slate-900 mt-1">
-                          {resource.title || 'Untitled Resource'}
-                        </h3>
-                      </div>
-                    </div>
-
+                    <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                      {resource.category || 'General'}
+                    </p>
+                    <h3 className="text-lg font-bold text-slate-900 mt-1">
+                      {resource.title || 'Untitled Resource'}
+                    </h3>
                     <p className="text-sm text-slate-600 mt-3 min-h-[60px]">
                       {resource.description || 'No description provided.'}
                     </p>
-
                     <a
                       href={resource.link || '#'}
                       target="_blank"
@@ -458,6 +353,229 @@
         </section>
       );
     };
+
+    const UpdateClientTab = ({ clients, onClientUpdated }) => {
+      const [selectedClientId, setSelectedClientId] = useState('');
+      const [status, setStatus] = useState('');
+      const [notes, setNotes] = useState('');
+      const [docsSent, setDocsSent] = useState('');
+      const [docsSigned, setDocsSigned] = useState('');
+      const [paymentReceived, setPaymentReceived] = useState('');
+      const [saving, setSaving] = useState(false);
+      const [message, setMessage] = useState('');
+      const [error, setError] = useState('');
+
+      const clientOptions = useMemo(() => {
+        return [...clients].sort((a, b) => {
+          const aName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+          const bName = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+          return aName.localeCompare(bName);
+        });
+      }, [clients]);
+
+      useEffect(() => {
+        const selectedClient = clients.find(c => c.clientId === selectedClientId);
+
+        if (selectedClient) {
+          setStatus(selectedClient.status || '');
+          setNotes(selectedClient.notes || '');
+          setDocsSent(formatInputDate(selectedClient.docsSent));
+          setDocsSigned(formatInputDate(selectedClient.docsSigned));
+          setPaymentReceived(formatInputDate(selectedClient.paymentReceived));
+        } else {
+          setStatus('');
+          setNotes('');
+          setDocsSent('');
+          setDocsSigned('');
+          setPaymentReceived('');
+        }
+
+        setMessage('');
+        setError('');
+      }, [selectedClientId, clients]);
+
+      const selectedClient = clients.find(c => c.clientId === selectedClientId);
+
+      const handleSave = async () => {
+        setMessage('');
+        setError('');
+
+        if (!selectedClientId) {
+          setError('Please select a client.');
+          return;
+        }
+
+        setSaving(true);
+
+        try {
+          const response = await fetch(GOOGLE_SHEETS_API, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify({
+              action: 'updateClient',
+              token: PORTAL_TOKEN,
+              clientId: selectedClientId,
+              status,
+              notes,
+              docsSent,
+              docsSigned,
+              paymentReceived
+            })
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to update client.');
+          }
+
+          setMessage(result.message || 'Client updated successfully.');
+          await onClientUpdated();
+        } catch (err) {
+          setError(err.message || 'Something went wrong.');
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      return (
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-2xl font-bold text-slate-900">Update Client</h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Update client records here instead of editing the Google Sheet directly.
+            </p>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Select Client</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                >
+                  <option value="">Choose a client...</option>
+                  {clientOptions.map((client) => (
+                    <option key={client.clientId} value={client.clientId}>
+                      {client.clientId} — {client.firstName} {client.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                  disabled={!selectedClient}
+                >
+                  <option value="">Select status...</option>
+                  <option value="New Lead">New Lead</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Docs Sent">Docs Sent</option>
+                  <option value="Docs Signed">Docs Signed</option>
+                  <option value="Payment Pending">Payment Pending</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Closed Lost">Closed Lost</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Docs Sent</label>
+                <input
+                  type="date"
+                  value={docsSent}
+                  onChange={(e) => setDocsSent(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                  disabled={!selectedClient}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Docs Signed</label>
+                <input
+                  type="date"
+                  value={docsSigned}
+                  onChange={(e) => setDocsSigned(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                  disabled={!selectedClient}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Payment Received</label>
+                <input
+                  type="date"
+                  value={paymentReceived}
+                  onChange={(e) => setPaymentReceived(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                  disabled={!selectedClient}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows="5"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-sm"
+                  placeholder="Add or update notes..."
+                  disabled={!selectedClient}
+                />
+              </div>
+            </div>
+
+            {selectedClient ? (
+              <div className="mb-6 rounded-xl bg-slate-50 border border-slate-200 p-4">
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">Selected Client:</span>{' '}
+                  {selectedClient.firstName} {selectedClient.lastName}
+                  {selectedClient.company ? ` • ${selectedClient.company}` : ''}
+                </p>
+              </div>
+            ) : null}
+
+            {message ? (
+              <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700 text-sm">
+                {message}
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
+                {error}
+              </div>
+            ) : null}
+
+            <button
+              onClick={handleSave}
+              disabled={!selectedClient || saving}
+              className="px-5 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Saving...' : 'Save Update'}
+            </button>
+          </div>
+        </section>
+      );
+    };
+
+    function formatInputDate(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        const stringValue = String(value);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
+        return '';
+      }
+      return date.toISOString().split('T')[0];
+    }
 
     const App = () => {
       const [loading, setLoading] = useState(true);
@@ -507,7 +625,7 @@
                   </p>
                   <h1 className="text-4xl font-bold">{companyName}</h1>
                   <p className="text-blue-100 mt-3 max-w-2xl">
-                    A live operating system for sales teams to manage leads, track clients, organize resources, and improve pipeline visibility.
+                    A live operating system for sales teams to manage leads, track clients, organize resources, and update deal progress.
                   </p>
                 </div>
 
@@ -533,56 +651,31 @@
             ) : null}
 
             <div className="flex flex-wrap gap-3 mb-8">
-              <NavButton
-                label="Dashboard"
-                active={activeTab === 'dashboard'}
-                onClick={() => setActiveTab('dashboard')}
-              />
-              <NavButton
-                label="Clients"
-                active={activeTab === 'clients'}
-                onClick={() => setActiveTab('clients')}
-              />
-              <NavButton
-                label="Leads"
-                active={activeTab === 'leads'}
-                onClick={() => setActiveTab('leads')}
-              />
-              <NavButton
-                label="Resources"
-                active={activeTab === 'resources'}
-                onClick={() => setActiveTab('resources')}
-              />
+              <NavButton label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+              <NavButton label="Clients" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+              <NavButton label="Leads" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
+              <NavButton label="Resources" active={activeTab === 'resources'} onClick={() => setActiveTab('resources')} />
+              <NavButton label="Update Client" active={activeTab === 'update'} onClick={() => setActiveTab('update')} />
             </div>
 
             {activeTab === 'dashboard' && (
-              <DashboardTab
-                clients={clients}
-                leads={leads}
-                intakeFormUrl={CLIENT_INTAKE_FORM}
-                loading={loading}
-              />
+              <DashboardTab clients={clients} leads={leads} intakeFormUrl={CLIENT_INTAKE_FORM} loading={loading} />
             )}
 
             {activeTab === 'clients' && (
-              <ClientsTab
-                clients={clients}
-                loading={loading}
-              />
+              <ClientsTab clients={clients} loading={loading} />
             )}
 
             {activeTab === 'leads' && (
-              <LeadsTab
-                leads={leads}
-                loading={loading}
-              />
+              <LeadsTab leads={leads} loading={loading} />
             )}
 
             {activeTab === 'resources' && (
-              <ResourcesTab
-                resources={resources}
-                loading={loading}
-              />
+              <ResourcesTab resources={resources} loading={loading} />
+            )}
+
+            {activeTab === 'update' && (
+              <UpdateClientTab clients={clients} onClientUpdated={fetchData} />
             )}
           </main>
         </div>
